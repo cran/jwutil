@@ -7,10 +7,8 @@
 #' @return logical scalar
 #' @export
 allIsNumeric <- function(x, extras = c(".", "NA", NA)) {
-  old <- options(warn = - 1)
-  on.exit(options(old))
   xs <- x[x %nin% c("", extras)]
-  !any(is.na(as.numeric(xs)))
+  suppressWarnings(!any(is.na(as.numeric(xs))))
 }
 
 #' @title check whether vector represents all integer values, not that the same
@@ -36,7 +34,7 @@ allIsInteger <- function(x, tol =  1e-9, na.rm = TRUE)
 #' @return character vector, may have NA values
 #' @export
 asCharacterNoWarn <- function(x) {
-  old <- options(warn = - 1)
+  old <- options(warn = -1)
   on.exit(options(old))
   if (is.factor(x)) x <- levels(x)[x]
   as.character(x)
@@ -56,10 +54,8 @@ asCharacterNoWarn <- function(x) {
 #' @return numeric vector, may have NA values
 #' @export
 asNumericNoWarn <- function(x) {
-  old <- options(warn = - 1)
-  on.exit(options(old))
   if (is.factor(x)) x <- levels(x)[x]
-  as.numeric(x)
+  suppressWarnings(as.numeric(x))
 }
 
 #' @rdname asNumericNoWarn
@@ -90,6 +86,26 @@ areIntegers <- function(x, tol = 1e-9, na.ignore = FALSE) {
   i
 }
 
+#' @title which elements of a vector are numeric
+#' @description test without throwing a warning
+#' @param x vector
+#' @param extras character vector containing acceptable alternatives to numeric
+#'   values which will result in returning \code{TRUE} for that element. Default
+#'   is \code{c(".", "NA", NA)}.
+#' @return logical vector of same length as input
+#' @examples
+#' areNumeric(c("1","2","3"))
+#' areNumeric(c("1L", "2.2"))
+#' areNumeric(c("NA", NA, ".", "", "-1.9"))
+#' @export
+areNumeric <- function(x, extras = c(".", "NA", NA)) {
+  if (is.null(x)) return(FALSE)
+  old <- options(warn = -1)
+  on.exit(options(old))
+  x[x %in% c("", extras)] <- NA
+  !is.na(as.numeric(x))
+}
+
 #' @title inverse of \%in\%
 #' @description borrowed from Hmisc. See %in%. Original %in% is: match(x, table,
 #'   nomatch = 0L) > 0L
@@ -104,6 +120,7 @@ areIntegers <- function(x, tol = 1e-9, na.ignore = FALSE) {
 #' @description downloads zip file, and opens named file \code{filename}, or the
 #'   single file in zip if \code{filename} is not specified. FUN is a function,
 #'   with additional arguments to FUN given by \dots.
+#'   @details TODO: update from \code{icd} package
 #' @param url character vector of length one containing URL of zip file.
 #' @param filename character vector of length one containing name of file to
 #'   extract from zip. If not specified, and the zip contains a single file,
@@ -117,11 +134,13 @@ read.zip.url <- function(url, filename = NULL, FUN = readLines, ...) {
   stopifnot(length(filename) <= 1)
   stopifnot(is.character(url), length(url) == 1)
   zipfile <- tempfile()
-  download.file(url = url, destfile = zipfile, quiet = TRUE)
+  on.exit(unlink(zipfile), add = TRUE)
+  utils::download.file(url = url, destfile = zipfile, quiet = TRUE)
   zipdir <- tempfile()
+  on.exit(unlink(zipfile, recursive = TRUE), add = TRUE)
   dir.create(zipdir)
-  unzip(zipfile, exdir = zipdir)  # files="" so extract all
-  files <- list.files(zipdir)
+  utils::unzip(zipfile, exdir = zipdir)  # files="" so extract all
+  files <- list.files(zipdir, recursive = TRUE)
   if (is.null(filename)) {
     if (length(files) == 1) {
       filename <- files
@@ -143,7 +162,7 @@ read.zip.url <- function(url, filename = NULL, FUN = readLines, ...) {
 #' @param x is usually a charcter vector
 #' @return integer
 #' @export
-countNotNumeric <- function (x)
+countNotNumeric <- function(x)
   countIsNa(asNumericNoWarn(x))
 
 #' @title count numeric elements
@@ -156,6 +175,7 @@ countNumeric <- function(x)
   length(x) - countNotNumeric(x)
 
 #' @title count NA in vector
+#' @description count the number of NAs in a vector
 #' @param x vector
 #' @return integer
 #' @export
@@ -163,11 +183,16 @@ countIsNa <- function(x)
   sum(is.na(x))
 
 #' @title Proportion of NA values in a vector
+#' @description get fraction of NA in a vector
 #' @param x is a vector which may have NA values
 #' @return numeric proportion of NAs in the supplied vector
 #' @export
 propIsNa <- function(x)
-  ifelse(length(x) == 0, 0, countIsNa(x) / length(x))
+  if (length(x)) {
+    countIsNa(x) / length(x)
+  } else {
+    0
+  }
 
 #' @title count which combinations of fields have at least one non-NA
 #' @description cycles through the given data frame twice, and applies logical
@@ -204,7 +229,7 @@ countNonNaCumulative <- function(d) {
         MARGIN = 2,
         FUN = function(x, envir) {
           #update running total of non-NA count
-          assign("running", running | x, envir=envir)
+          assign("running", running | x, envir = envir)
           sum(running)
         },
         environment()
@@ -243,15 +268,15 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
     stop("must have matching lengths of date and time vectors.
          I got: %d and %d", length(dts), length(tms))
 
-  if (class(dts) %nin% c("Date","character") && !is.na(dts))
+  if (class(dts) %nin% c("Date", "character") && !is.na(dts))
     stop(paste("date must be of class Date, character, but received: %s",
                class(dts)))
 
   # if a time part is given in the date field, this is an error
-  if (is.character(dts) && any(grepl(pattern="\\S\\s\\S", dts)))
+  if (is.character(dts) && any(grepl(pattern = "\\S\\s\\S", dts)))
     stop("suspect time is already given with date argument, \
          which invalidates this entire function. e.g. %s",
-         dts[grepl(pattern="\\S\\s\\S", dts)][1])
+         dts[grepl(pattern = "\\S\\s\\S", dts)][1])
 
   # convert to Date (may already be Date, but that's fine) any conversion error
   # in any item will result in an error. an alternative strategy would be to
@@ -260,7 +285,7 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
   dts <- as.Date(dts)
 
   # a single NA value could appear as type logical
-  if (class(tms) %nin% c("numeric","integer","character") && !is.na(tms))
+  if (class(tms) %nin% c("numeric", "integer", "character") && !is.na(tms))
     stop("time must be numeric or character, but got class for times of '%s'.",
          class(tms))
 
@@ -268,7 +293,6 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
   if (any(dts < as.Date("1850-01-01"), na.rm = TRUE)) {
     stop("some dates are before 1850: ", dts[dts < as.Date("1850-01-01")])
     # could alternatively set NA, warn and continue:
-    # dts[dts < as.Date("1850-01-01")] <- NA
   }
 
   # let NA be valid:
@@ -293,8 +317,8 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
     tms[bad_range] <- NA
   }
 
-  timesfourzeros <- formatC(tms, width=4, format="d", flag="0")
-  strptime(paste(dts, timesfourzeros, sep=" "), "%Y-%m-%d %H%M")
+  timesfourzeros <- formatC(tms, width = 4, format = "d", flag = "0")
+  strptime(paste(dts, timesfourzeros, sep = " "), "%Y-%m-%d %H%M")
 }
 
 #' @title check if a time is valid in 24h clock
@@ -308,9 +332,6 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
 isValidTime <- function(tms, na.rm = FALSE) {
   if (na.rm) tms <- tms[!is.na(tms)]
   grepl("^[[:space:]]*([01]?[0-9]|2[0-3])?:?[0-5]?[0-9][[:space:]]*$", tms)
-  #Don't do this, or we can't use logical test in case all vals are NA.
-  #validTimes[is.na(tms)] <- NA # grepl only gives T or F output TODO: write
-  #tests...
 }
 
 #' @title shuffle
@@ -351,7 +372,7 @@ permute <- function(x) {
 
   #take each one and place it first, then recurse the rest:
   for (element in 1:length(x)) {
-    sub_combs <- Recall(x[ - element])  # recurse
+    sub_combs <- Recall(x[ -element])  # recurse
     new_combs <- cbind(x[element], sub_combs)
     res <- rbind(res, new_combs)
   }
@@ -359,15 +380,15 @@ permute <- function(x) {
 }
 
 #' @title all unique combinations of a vector and all its non-zero subsets
+#' @description all unique combinations of a vector and all its non-zero subsets
 #' @param x vector to be subsetted and combined
 #' @return list of vectors with all combinations of x and its subsets
 #' @export
 combn_subset <- function(x) {
   res <- list()
   for (n in 1:length(x)) {
-    r <- combn(x, n, simplify = FALSE)
+    r <- utils::combn(x, n, simplify = FALSE)
     r2 <- lapply(t(r), FUN = function(y) unlist(y))
-    #print(r2)
     res <- c(res, r2)
   }
   unique(res)
@@ -405,8 +426,7 @@ opt_binary_fun <- function(x, n) {
   sum(colSums(x[n])) / length(n)
 }
 
-
-#' Are we running on Linux or Windows?
+#' Are we running on Linux, Mac or Windows?
 #'
 #' @return logical
 #' @export
@@ -418,33 +438,43 @@ platformIsLinux <- function()
 platformIsWindows <- function()
   Sys.info()[["sysname"]] == "Windows"
 
-#' @title read .xlsx file, interpret as CSV, and return data frame
-#' @description currently relies on Linux xlsx2csv command, but could
-#'   potentially be done with VB script in Windows
-#' @param file is the path to the .xlsx file
-#' @return data frame
+#' @rdname platformIsLinux
 #' @export
-readXlsxLinux <- function(file) {
+platformIsMac <- function()
+  Sys.info()[["sysname"]] == "Darwin"
+
+#' @title read \code{.xlsx} file, interpret as CSV, and return a data frame
+#' @description currently relies on Linux xlsx2csv command, but could
+#'   potentially be done with VB script in Windows. This offers a different
+#'   backend to other Excel parsing functions in R,
+#' @param file is the path to the \code{.xlsx} file
+#' @return data frame
+#' @seealso \code{readxl} package by Hadley Wickham
+#' @export
+read_xlsx_linux <- function(file) {
   if (jwutil::platformIsWindows())
     stop("can only convert XLSX on linux using xlsx2csv command")
 
   csvfile <- tempfile()
+  on.exit(unlink(csvfile), add = TRUE)
   system(paste0("xlsx2csv --delimiter=tab --dateformat=%m-%d-%y \"",
                 file, "\" > ", csvfile))
-  read.delim(csvfile)
+  utils::read.delim(csvfile)
 }
 
 #' @title build simple linear formula from variable names
+#' @description build simple linear formula from variable names given by two
+#'   character vectors. TODO: allow unquoted names.
 #' @param left character vector
 #' @param right character vector
 #' @return formula
 #' @export
-buildLinearFormula <- function (left, right) {
-  as.formula(
+buildLinearFormula <- function(left, right) {
+  stats::as.formula(
     paste(
       paste(left, collapse = "+"),
       paste(right, collapse = "+"),
-      sep="~")
+      sep = "~")
   )
 }
 
@@ -468,37 +498,36 @@ invwhich <- function(which, len = max(which)) {
 #' @title recursive remove
 #' @description search through environments until the variables in the list
 #'   \code{x} are all gone. This doesn't delete functions. No barrier to
-#'   infinite recursion, but rm should be able to delete anything that exists
-#'   can see.
+#'   infinite recursion, but \code{rm} should be able to delete anything that
+#'   \code{exists} can see.
 #' @param x variables to annihilate
 #' @param envir environment to start at, defaults to calling frame.
 #' @export
-rmRecursive <- function(x, envir = parent.frame()) {
+rm_r <- function(x, envir = parent.frame()) {
   suppressWarnings({
-    while(any(vapply(x, exists, logical(1),
-                     mode = "numeric", inherits = TRUE, envir = envir)))
+    while (any(vapply(x, exists, logical(1),
+                      mode = "numeric", inherits = TRUE, envir = envir)))
       rm(list = x, envir = envir, inherits = TRUE)
 
   })
 }
 
-ls.objects <- function (pos = 1, pattern, order.by,
-                         decreasing = FALSE, head = FALSE, n = 5) {
+ls.objects <- function(pos = 1, pattern, order.by,
+                       decreasing = FALSE, head = FALSE, n = 5) {
   napply <- function(names, fn) sapply(names, function(x)
     fn(get(x, pos = pos)))
   names <- ls(pos = pos, pattern = pattern)
   obj.class <- napply(names, function(x) as.character(class(x))[1])
   obj.mode <- napply(names, mode)
   obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
-  obj.size <- napply(names, object.size)
-  obj.dim <- t(napply(names, function(x)
-    as.numeric(dim(x))[1:2]))
+  obj.size <- napply(names, utils::object.size)
+  obj.dim <- t(napply(names, function(x) as.numeric(dim(x))[1:2]))
   vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
   obj.dim[vec, 1] <- napply(names, length)[vec]
   out <- data.frame(obj.type, obj.size, obj.dim)
   names(out) <- c("Type", "Size", "Rows", "Columns")
   if (!missing(order.by))
-    out <- out[order(out[[order.by]], decreasing=decreasing), ]
+    out <- out[order(out[[order.by]], decreasing = decreasing), ]
   if (head)
     out <- head(out, n)
   out
@@ -519,5 +548,49 @@ lsos <- function(..., n = 10)
 #' @param x object to test
 #' @return logical
 #' @export
-is.Date <- function (x)
-  is(x, "Date")
+is.Date <- function(x)
+  methods::is(x, "Date")
+
+#' @title extract code from knitr vignette and source it
+#' @description extract code from knitr vignette and source it
+#' @param input path to file as single character string
+#' @param output output file path, defaults to a file in a temporary name based
+#'   on \code{input}
+#' @param documentation single integer value passed on to \code{knitr::purl}. An
+#'   integer specifying the level of documentation to go the tangled script: 0
+#'   means pure code (discard all text chunks); 1 (default) means add the chunk
+#'   headers to code; 2 means add all text chunks to code as roxygen comments
+#' @param ... further parameters passed to \code{source}
+#' @export
+source_purl <- function(input,
+                        output = file.path(tempdir(),
+                                           paste0(basename(input), ".R")),
+                        documentation = 1L, ...) {
+  requireNamespace("knitr")
+  checkmate::assertFile(input)
+  checkmate::assertPathForOutput(output, overwrite = TRUE)
+  checkmate::assertInt(documentation)
+  knitr::purl(input, output, quiet = TRUE, documentation = documentation)
+  source(output, ...)
+}
+
+#' Save given variable in package data directory
+#'
+#' File is named varname.RData with an optional suffix before .RData
+#'
+#' @param var_name character or symbol, e.g. "myvar" or \code{myvar}, either of
+#'   which would find \code{myvar} in the parent environment, and save it as
+#'   \code{myvar.RData} in \code{package_root/data}.
+#' @param suffix character scalar
+#' @keywords internal
+save_in_data_dir <- function(var_name, suffix = "") {
+  checkmate::assertString(suffix)
+  var_name <- as.character(substitute(var_name))
+  checkmate::assertString(var_name)
+  stopifnot(exists(var_name, envir = parent.frame()))
+  save(list = var_name,
+       envir = parent.frame(),
+       file = file.path("data", strip(paste0(var_name, suffix, ".RData"))),
+       compress = "xz")
+  message("Now reload package to enable updated/new data: ", var_name)
+}

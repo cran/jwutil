@@ -3,6 +3,7 @@
 nums_in_tests <- 30
 
 #' @title list all functions in a package
+#' @description List functions in a package
 #' @param pkg character string containing package name
 #' @return character vector of functions in given package
 #' @export
@@ -27,7 +28,6 @@ lsf <- function(pkg) {
 #' @return list of long and double versions of convertable values from the input
 #' @export
 numbers_to_long_and_float <- function(..., na.rm = TRUE) {
-  #browser()
   x <- flattenList(list(...))
   # drop any NA values. Very big numbers not representable by 32 bit integers,
   # give NA with warning. For test case generation, usually we will want to
@@ -51,12 +51,12 @@ zeroes <- list(0L, 0.0)
 bad_input <- c(
   list(c(), NA, list()),
   c(),
-  list(list(1,2),jack="test", c(1,2,3), data.frame()),
+  list(list(1, 2), jack = "test", c(1, 2, 3), data.frame()),
   NULL,
   NA,
-  this="jack",
-  data.frame(j=1:10,k=11:20),
-  matrix(nrow=2,ncol=2),
+  this = "jack",
+  data.frame(j = 1:10, k = 11:20),
+  matrix(nrow = 2, ncol = 2),
   as.POSIXct(Sys.time(), "GMT"),
   base::.leap.seconds
 )
@@ -77,24 +77,25 @@ random_test_numbers <- function(n = nums_in_tests,
                                 min = NULL,
                                 max = NULL,
                                 hole = NULL) {
-  x <- c(0,
-         pi,
-         sqrt(2),
-         runif(n),
-         runif(n, min = - 1, max = 0),
-         runif(n, min = 0, max = 1),
-         runif(n, max = ifelse(is.null(max), .Machine$double.xmax, max)),
-         runif(n, min = ifelse(is.null(max), - .Machine$double.xmax, min)),
-         runif(n, min = - n * .Machine$double.xmin,
-               max =   n * .Machine$double.xmin)
-  )
+  x <-
+    c(0,
+      pi,
+      sqrt(2),
+      stats::runif(n),
+      stats::runif(n, min = -1, max = 0),
+      stats::runif(n, min = 0, max = 1),
+      stats::runif(n, max = ifelse(is.null(max), .Machine$double.xmax, max)),
+      stats::runif(n, min = ifelse(is.null(max), -.Machine$double.xmax, min)),
+      stats::runif(n, min = -n * .Machine$double.xmin,
+                   max =   n * .Machine$double.xmin)
+    )
   #drop any generated numbers that didn't match the constraints
   if (!is.null(min)) x <- x[x >= min]
   if (!is.null(max)) x <- x[x <= max]
 
   #punch a hole in the range, if provided:
   if (!is.null(hole) && length(hole) == 2) {
-    x <- x[! (x >= hole[1] & x <= hole[2])]
+    x <- x[!(x >= hole[1] & x <= hole[2])]
   }
   x
 }
@@ -102,7 +103,7 @@ random_test_numbers <- function(n = nums_in_tests,
 #' @rdname random_test_numbers
 #' @export
 random_test_integers <- function(n = nums_in_tests,
-                                 min = - .Machine$integer.max,
+                                 min = -.Machine$integer.max,
                                  max = .Machine$integer.max,
                                  hole = NULL) {
 
@@ -114,6 +115,7 @@ random_test_integers <- function(n = nums_in_tests,
 }
 
 #' @title generate random Dates or POSIXlt test datetimes
+#' @description generate random \code{Date}s and \code{POSIXlt} test datetimes
 #' @param n integer number to generate
 #' @param origin Date defaults to Jan 1, 2000.
 #' @param dayspread integer number of days either side of origin to pick random
@@ -123,7 +125,7 @@ random_test_integers <- function(n = nums_in_tests,
 random_test_dates <- function(n = nums_in_tests,
                               origin = as.Date("2000-01-01"),
                               dayspread = 365 * 150) {
-  as.Date(runif(n, min = - dayspread, max = dayspread), origin)
+  as.Date(stats::runif(n, min = -dayspread, max = dayspread), origin)
 }
 
 #' @rdname random_test_dates
@@ -133,7 +135,7 @@ random_test_posixlt_datetimes <- function(n = nums_in_tests,
                                           dayspread = 365 * 150) {
   as.POSIXlt(
     as.POSIXlt(random_test_dates(n, origin, dayspread)) +
-      runif(1, min = 0, max = 24 * 60 * 60)
+      stats::runif(1, min = 0, max = 24 * 60 * 60)
   )
 }
 
@@ -146,8 +148,8 @@ random_test_letters <- function(n = nums_in_tests, max_str_len = 257) {
   for (i in 1:n) {
     x[length(x) + 1] <- paste(
       sample(
-        c(LETTERS,letters),
-        runif(n = 1, min = 1, max = max_str_len),
+        c(LETTERS, letters),
+        stats::runif(n = 1, min = 1, max = max_str_len),
         replace = TRUE),
       collapse = "")
   }
@@ -161,11 +163,11 @@ random_test_letters <- function(n = nums_in_tests, max_str_len = 257) {
 #' @export
 extreme_numbers <- c(
   .Machine$integer.max,
-  - .Machine$integer.max,
+  -.Machine$integer.max,
   .Machine$double.xmin,
   .Machine$double.xmax,
-  - .Machine$double.xmin,
-  - .Machine$double.xmax)
+  -.Machine$double.xmin,
+  -.Machine$double.xmax)
 
 #' @title alternative \code{expect_that} from \code{testthat} which permutes all
 #'   the inputs to a function which should give the same result where n args >=2
@@ -192,11 +194,10 @@ expect_that_combine_all_args <- function(object, condition,
                                          info = NULL, label = NULL) {
 
   cl <- substitute(object)
-  #stopifnot(sum(sapply(cl, is.symbol)) <= 1) # this isn't quite right, I just
-  #want to know whether there are multiple top-level symbols
+  # TODO: I now want to test for whether there are multiple top-level symbols
 
   func_name <- cl[[1]]
-  args <- as.list(cl[ - 1])
+  args <- as.list(cl[-1])
   # can only handle flat lists of arguments when permuting
   stopifnot(identical(unlist(args, recursive = TRUE),
                       unlist(args, recursive = FALSE)))
@@ -208,7 +209,7 @@ expect_that_combine_all_args <- function(object, condition,
   # now loop through all permutations
   for (comb in 1:dim(arg_combs)[1]) {
     e <- testthat::expect_that(
-      object    = do.call(as.character(func_name), as.list(arg_combs[comb,])),
+      object    = do.call(as.character(func_name), as.list(arg_combs[comb, ])),
       condition = condition,
       info      = paste0(
         info, "args = ",
@@ -227,11 +228,10 @@ expect_that_combine_first_arg <- function(object, condition,
                                           info = NULL, label = NULL) {
 
   cl <- substitute(object)
-  #stopifnot(sum(sapply(cl, is.symbol)) <= 1) # this isn't quite right, I just
-  #want to know whether there are multiple top-level symbols
+  # TODO: see above
 
   func_name <- cl[[1]]
-  args <- as.list(cl[ - 1])
+  args <- as.list(cl[-1])
   arg_one <- eval(args[[1]])  # c(1,2,3) has len 4 because not evaluated yet
   # can only handle flat lists of arguments when permuting? Does this apply when
   # working on first argument only?
@@ -246,8 +246,8 @@ expect_that_combine_first_arg <- function(object, condition,
   for (comb in 1:dim(arg_one_combs)[1]) {
     e <- testthat::expect_that(
       object    = do.call(as.character(func_name),
-                          c(list(arg_one_combs[comb,]),
-                            args[ - 1])),
+                          c(list(arg_one_combs[comb, ]),
+                            args[-1])),
       condition = condition,
       info      = paste0(
         info, "arg_one = ",
