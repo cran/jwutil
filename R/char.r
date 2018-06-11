@@ -1,15 +1,50 @@
+# Copyright (C) 2014 - 2018  Jack O. Wasey
+#
+# This file is part of jwutil.
+#
+# jwutil is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# jwutil is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with jwutil If not, see <http:#www.gnu.org/licenses/>.
 
-#' @title strip all whitespace
-#' @description could do this with regular expression, but slow, and this
-#'   function is called frequently. My only use case works with removal of all
-#'   space character whitespace, and I don't expect <TAB>. This uses non-unicode
-#'   aware matching for speed. This can be changed by setting useBytes to FALSE.
+#' strip all whitespace
+#'
+#' could do this with regular expression, but slow, and this function is called
+#' frequently. My only use case works with removal of all space character
+#' whitespace, and I don't expect <TAB>. This uses non-unicode aware matching
+#' for speed. This can be changed by setting useBytes to FALSE.
+#'
+#' \code{gsub} is probably quicker than \code{stringr}/\code{stringi}. For
+#' comorbidity processing, this package prefers the faster \link{base}
+#' functions, whereas \code{stringr} is used for tasks which are not time
+#' critical, e.g. parsing source data to be included in the distributed
+#' \code{icd} package.
 #' @param x is a character vector to strip
 #' @param pattern is the non-regex of the character to strip, default " "
 #' @param useBytes logical scalar. Unlike gsub, this will default to TRUE here,
 #'   therefore breaking unicode.
 #' @return character vector
 #' @export
+#' @examples
+#' \dontrun{
+#' requireNamespace("microbenchmark")
+#' requireNamespace("stringr")
+#' x <- random_string(25000);
+#' microbenchmark::microbenchmark(
+#'   gsub(x = x, pattern = "A", replacement = "", fixed = TRUE, useBytes = TRUE),
+#'   gsub(x = x, pattern = "A", replacement = "", fixed = TRUE, useBytes = TRUE, perl = TRUE),
+#'   gsub(x = x, pattern = "A", replacement = ""),
+#'   stringr::str_replace_all(x, "A", "")
+#'   )
+#' }
 strip <- function(x, pattern = " ", useBytes = TRUE) {
   stopifnot(length(pattern) == 1)
   stopifnot(length(useBytes) == 1)
@@ -72,7 +107,7 @@ strMultiMatch <- function(pattern, text, dropEmpty = FALSE, ...) {
     )[ -1]
   )
   if (!dropEmpty) return(result)
-  result[sapply(result, function(x) length(x) != 0)]
+  result[vapply(result, function(x) length(x) != 0), logical(1)]
 }
 
 #' @rdname strMultiMatch
@@ -91,23 +126,19 @@ strPairMatch <- function(pattern, text, swap = FALSE, dropEmpty = FALSE, ...) {
   stopifnot(is.character(text))
   stopifnot(is.logical(swap))
   stopifnot(is.logical(dropEmpty))
-
   res <- strMultiMatch(pattern = pattern, text = text,
                        dropEmpty = dropEmpty, ...)
-  stopifnot(all(sapply(res, function(x) length(x) == 2)))
-
+  stopifnot(all(vapply(res, function(x) length(x) == 2, integer(1))))
   outNames <- vapply(X = res,
                      FUN = "[",
                      FUN.VALUE = character(1),
                      ifelse(swap, 2, 1))
   stopifnot(all(!is.na(outNames)))
-
   out <- vapply(X = res,
                 FUN = "[",
                 FUN.VALUE = character(1),
                 ifelse(swap, 1, 2))
   stopifnot(all(!is.na(out)))
-
   names(out) <- outNames
   out
 }

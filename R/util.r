@@ -1,6 +1,24 @@
-#' @title check whether character vector represents all numeric values
-#' @description check whether all the items of input vector are numeric without
-#'   throwing warning derived from Hmsic package
+# Copyright (C) 2014 - 2018  Jack O. Wasey
+#
+# This file is part of jwutil.
+#
+# jwutil is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# jwutil is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with jwutil If not, see <http:#www.gnu.org/licenses/>.
+
+#' check whether character vector represents all numeric values
+#'
+#' check whether all the items of input vector are numeric without throwing
+#' warning derived from Hmsic package
 #' @param x is a character vector to be tested
 #' @param extras is a vector of character strings which are counted as NA
 #'   values, defaults to '.' and 'NA'. Also allow \code{NA}.
@@ -11,10 +29,10 @@ allIsNumeric <- function(x, extras = c(".", "NA", NA)) {
   suppressWarnings(!any(is.na(as.numeric(xs))))
 }
 
-#' @title check whether vector represents all integer values, not that the same
-#'   as \code{is.integer}
-#' @description check whether all the items of input vector are integer
-#'   as.integer
+#' check whether vector represents all integer values, not that the same as
+#' \code{is.integer}
+#'
+#' check whether all the items of input vector are integer as.integer
 #' @param x is a vector to be tested
 #' @param tol single numeric, default if less than 1e-9 from an integer then
 #'   considered an integer.
@@ -27,22 +45,9 @@ allIsInteger <- function(x, tol =  1e-9, na.rm = TRUE)
     na.rm = na.rm
   )
 
-#' @title convert factor or vector to character without warnings
-#' @description correctly converts factors to vectors, and then converts to
-#'   character, which may silently introduce NAs
-#' @param x is a vector, probably of numbers of characters
-#' @return character vector, may have NA values
-#' @export
-asCharacterNoWarn <- function(x) {
-  old <- options(warn = -1)
-  on.exit(options(old))
-  if (is.factor(x)) x <- levels(x)[x]
-  as.character(x)
-}
-
-#' @title convert factor or vector to numeric without warnings
-#' @aliases asIntegerNoWarn
-#' @description correctly converts factors to vectors, and then converts to
+#' convert factor or vector to numeric without warnings
+#'
+#' correctly converts factors to vectors, and then converts to
 #'   numeric or integer, which may silently introduce NAs. Invisible rounding
 #'   errors can be a problem going from numeric to integer, so consider adding
 #'   tolerance to this conversion. \code{asIntegerNoWarn} silently
@@ -52,6 +57,7 @@ asCharacterNoWarn <- function(x) {
 #'   return a single logical.
 #' @param x is a vector, probably of numbers of characters
 #' @return numeric vector, may have NA values
+#' @aliases asIntegerNoWarn
 #' @export
 asNumericNoWarn <- function(x) {
   if (is.factor(x)) x <- levels(x)[x]
@@ -116,44 +122,6 @@ areNumeric <- function(x, extras = c(".", "NA", NA)) {
 "%nin%" <- function(x, table)
   match(x, table, nomatch = 0) == 0
 
-#' @title read file from zip at URL
-#' @description downloads zip file, and opens named file \code{filename}, or the
-#'   single file in zip if \code{filename} is not specified. FUN is a function,
-#'   with additional arguments to FUN given by \dots.
-#'   @details TODO: update from \code{icd} package
-#' @param url character vector of length one containing URL of zip file.
-#' @param filename character vector of length one containing name of file to
-#'   extract from zip. If not specified, and the zip contains a single file,
-#'   then this single file will be used.
-#' @param FUN function used to process the file in the zip, defaults to
-#'   readLines. The first argument to FUN will be the path of the extracted
-#'   \code{filename}
-#' @param \dots further arguments to FUN
-#' @export
-read.zip.url <- function(url, filename = NULL, FUN = readLines, ...) {
-  stopifnot(length(filename) <= 1)
-  stopifnot(is.character(url), length(url) == 1)
-  zipfile <- tempfile()
-  on.exit(unlink(zipfile), add = TRUE)
-  utils::download.file(url = url, destfile = zipfile, quiet = TRUE)
-  zipdir <- tempfile()
-  on.exit(unlink(zipfile, recursive = TRUE), add = TRUE)
-  dir.create(zipdir)
-  utils::unzip(zipfile, exdir = zipdir)  # files="" so extract all
-  files <- list.files(zipdir, recursive = TRUE)
-  if (is.null(filename)) {
-    if (length(files) == 1) {
-      filename <- files
-    } else {
-      stop("multiple files in zip, but no filename specified: ",
-           paste(files, collapse = ", "))
-    }
-  } else
-    stopifnot(filename %in% files)
-
-  do.call(FUN, args = c(list(file.path(zipdir, filename), warn = FALSE),
-                        list(...)))
-}
 
 #' @title count non-numeric elements
 #' @description counts the number of non-numeric elements in a vector, without
@@ -188,11 +156,7 @@ countIsNa <- function(x)
 #' @return numeric proportion of NAs in the supplied vector
 #' @export
 propIsNa <- function(x)
-  if (length(x)) {
-    countIsNa(x) / length(x)
-  } else {
-    0
-  }
+  if (length(x)) countIsNa(x) / length(x) else 0L
 
 #' @title count which combinations of fields have at least one non-NA
 #' @description cycles through the given data frame twice, and applies logical
@@ -224,7 +188,6 @@ countNonNaPairs <- function(d) {
 #' @export
 countNonNaCumulative <- function(d) {
   running <- rep(FALSE, dim(d)[1])
-
   apply(!is.na(d),
         MARGIN = 2,
         FUN = function(x, envir) {
@@ -263,52 +226,39 @@ lsp <- function(package, all.names = TRUE, pattern) {
 #' @return vector of POSIXlt date-times
 #' @export
 add_time_to_date <- function(tms, dts, verbose = FALSE) {
-
   if (length(dts) != length(tms))
     stop("must have matching lengths of date and time vectors.
          I got: %d and %d", length(dts), length(tms))
-
   if (class(dts) %nin% c("Date", "character") && !is.na(dts))
     stop(paste("date must be of class Date, character, but received: %s",
                class(dts)))
-
   # if a time part is given in the date field, this is an error
   if (is.character(dts) && any(grepl(pattern = "\\S\\s\\S", dts)))
     stop("suspect time is already given with date argument, \
          which invalidates this entire function. e.g. %s",
          dts[grepl(pattern = "\\S\\s\\S", dts)][1])
-
   # convert to Date (may already be Date, but that's fine) any conversion error
   # in any item will result in an error. an alternative strategy would be to
   # individually tryCatch converting each Date, returning warnings, NA, or
   # detailed error message. TODO
   dts <- as.Date(dts)
-
   # a single NA value could appear as type logical
   if (class(tms) %nin% c("numeric", "integer", "character") && !is.na(tms))
     stop("time must be numeric or character, but got class for times of '%s'.",
          class(tms))
-
   # this is a data error, not a programming error, stop
-  if (any(dts < as.Date("1850-01-01"), na.rm = TRUE)) {
+  if (any(dts < as.Date("1850-01-01"), na.rm = TRUE))
     stop("some dates are before 1850: ", dts[dts < as.Date("1850-01-01")])
-    # could alternatively set NA, warn and continue:
-  }
-
-  # let NA be valid:
+    # could alternatively set NA, warn and continue.
+  # Let NA be valid:
   if (!all(isValidTime(tms, na.rm = TRUE))) {
     warning(sprintf("%d invalid time(s) received, replacing with NA",
                     sum(isValidTime(tms, na.rm = TRUE))))
     tms[!isValidTime(tms)] <- NA
   }
-
-  # drop colons, if any
-  if (is.character(tms))  tms <- gsub(":", "", tms, fixed = TRUE)
-
+  if (is.character(tms)) tms <- gsub(":", "", tms, fixed = TRUE)
   if (verbose) message(paste("working with times:", tms,
-                             collapse = ", ", sep = ", "),
-                       capture = TRUE)
-
+                             collapse = ", ", sep = ", "), capture = TRUE)
   # convert to integer, then back to string later. THis is horrible.
   tms <- asIntegerNoWarn(tms)
   bad_range <- any(tms < 0 || tms > 2359)
@@ -316,7 +266,6 @@ add_time_to_date <- function(tms, dts, verbose = FALSE) {
     warning("invalid times found. Setting to NA:", tms, capture = TRUE)
     tms[bad_range] <- NA
   }
-
   timesfourzeros <- formatC(tms, width = 4, format = "d", flag = "0")
   strptime(paste(dts, timesfourzeros, sep = " "), "%Y-%m-%d %H%M")
 }
@@ -364,12 +313,11 @@ permuteWithRepeats <- function(x) {
 #' @return data frame, each row being one permutation
 #' @export
 permute <- function(x) {
-  stopifnot(length(x) < 13)  # factorial
+  if (is.null(x)) return()
+  stopifnot(length(x) < 13)  # factorial size, so limit for sanity
   # break out of recursion:
   if (length(x) == 2) return(rbind(x, c(x[2], x[1])))
-
   res <- c()
-
   #take each one and place it first, then recurse the rest:
   for (element in 1:length(x)) {
     sub_combs <- Recall(x[ -element])  # recurse
@@ -382,11 +330,12 @@ permute <- function(x) {
 #' @title all unique combinations of a vector and all its non-zero subsets
 #' @description all unique combinations of a vector and all its non-zero subsets
 #' @param x vector to be subsetted and combined
+#' @importFrom  utils combn
 #' @return list of vectors with all combinations of x and its subsets
 #' @export
 combn_subset <- function(x) {
   res <- list()
-  for (n in 1:length(x)) {
+  for (n in seq_along(x)) {
     r <- utils::combn(x, n, simplify = FALSE)
     r2 <- lapply(t(r), FUN = function(y) unlist(y))
     res <- c(res, r2)
@@ -401,7 +350,6 @@ combn_subset <- function(x) {
 #' @template verbose
 #' @export
 opt_binary_brute <- function(x, fun = opt_binary_fun, verbose = TRUE) {
-
   n <- names(x)
   all_cmbs <- combn_subset(n)
   best_min <- 1e9
@@ -450,11 +398,11 @@ platformIsMac <- function()
 #' @param file is the path to the \code{.xlsx} file
 #' @return data frame
 #' @seealso \code{readxl} package by Hadley Wickham
+#' @importFrom utils read.delim
 #' @export
 read_xlsx_linux <- function(file) {
-  if (jwutil::platformIsWindows())
+  if (platformIsWindows())
     stop("can only convert XLSX on linux using xlsx2csv command")
-
   csvfile <- tempfile()
   on.exit(unlink(csvfile), add = TRUE)
   system(paste0("xlsx2csv --delimiter=tab --dateformat=%m-%d-%y \"",
@@ -468,8 +416,16 @@ read_xlsx_linux <- function(file) {
 #' @param left character vector
 #' @param right character vector
 #' @return formula
+#' @importFrom stats as.formula
+#' @examples
+#' print(f <- build_formula(left = "A", right = c("B", "C")))
+#' class(f)
+#'
+#' build_formula(left = "Species", right = names(iris)[1:4])
 #' @export
-buildLinearFormula <- function(left, right) {
+build_formula <- function(left, right) {
+  stopifnot(is.character(left) && length(left) == 1)
+  stopifnot(is.character(right) && length(right) > 0)
   stats::as.formula(
     paste(
       paste(left, collapse = "+"),
@@ -477,6 +433,10 @@ buildLinearFormula <- function(left, right) {
       sep = "~")
   )
 }
+
+#' @rdname build_formula
+#' @export
+buildLinearFormula <- build_formula
 
 #' @title inverse which
 #' @description for a given vector of ordinals which would reference items in a
@@ -512,20 +472,48 @@ rm_r <- function(x, envir = parent.frame()) {
   })
 }
 
-ls.objects <- function(pos = 1, pattern, order.by,
+#' Summarize objects
+#'
+#' Get type, size (bytes) and dimensions of objects
+#' @param env Environment to search, default is the parent frame
+#' @param pattern regex pattern to match objects of interest
+#' @param order.by which column to order by
+#' @param decreasing default is \code{TRUE}
+#' @param head default is \code{FALSE} but if true, just show top \code{n}
+#' @param n number to show if limiting to \code{head}
+#' @importFrom utils object.size
+#' @md
+#' @export
+ls.objects <- function(env = parent.frame(), pattern, order.by,
                        decreasing = FALSE, head = FALSE, n = 5) {
-  napply <- function(names, fn) sapply(names, function(x)
-    fn(get(x, pos = pos)))
-  names <- ls(pos = pos, pattern = pattern)
-  obj.class <- napply(names, function(x) as.character(class(x))[1])
-  obj.mode <- napply(names, mode)
+  nms <- ls(envir = env, pattern = pattern)
+  if (!length(names)) {
+    message("No objects found.")
+    return()
+  }
+  obj.class <- vapply(mget(nms, envir = env), class, character(1))
+  obj.mode <- vapply(mget(nms, envir = env), mode, character(1))
   obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
-  obj.size <- napply(names, utils::object.size)
-  obj.dim <- t(napply(names, function(x) as.numeric(dim(x))[1:2]))
-  vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
-  obj.dim[vec, 1] <- napply(names, length)[vec]
-  out <- data.frame(obj.type, obj.size, obj.dim)
-  names(out) <- c("Type", "Size", "Rows", "Columns")
+  obj.size <- vapply(mget(nms, envir = env), utils::object.size, double(1))
+  obj.rows <- rep(NA_integer_, length(nms))
+  obj.cols <- rep(NA_integer_, length(nms))
+  for (n in seq_along(nms)) {
+    w <- get(nms[n], envir = env)
+    d <- dim(w)
+    if (!is.null(d) && !is.na(d)) {
+      obj.rows[n] <- d[1]
+      obj.cols[n] <- d[2]
+    } else if (is.vector(w)) {
+      obj.rows[n] <- length(w)
+      obj.cols[n] <- NA
+    }
+    else {
+      obj.rows[n] <- NA
+      obj.cols[n] <- NA
+    }
+  }
+  out <- data.frame(obj.type, obj.size, obj.rows, obj.cols)
+  names(out) <- c("Type", "Size", "Len/Rows", "Columns")
   if (!missing(order.by))
     out <- out[order(out[[order.by]], decreasing = decreasing), ]
   if (head)
@@ -551,8 +539,11 @@ lsos <- function(..., n = 10)
 is.Date <- function(x)
   methods::is(x, "Date")
 
-#' @title extract code from knitr vignette and source it
-#' @description extract code from knitr vignette and source it
+#' Extract code from knitr vignette and source it
+#'
+#' Extract code from knitr vignette and source it. This has the advantage in
+#' that it runs with code in \R session, whereas running vignettes normally
+#' requires the package to be installed.
 #' @param input path to file as single character string
 #' @param output output file path, defaults to a file in a temporary name based
 #'   on \code{input}
@@ -563,34 +554,71 @@ is.Date <- function(x)
 #' @param ... further parameters passed to \code{source}
 #' @export
 source_purl <- function(input,
-                        output = file.path(tempdir(),
+                        output = file.path(.tempdir(),
                                            paste0(basename(input), ".R")),
                         documentation = 1L, ...) {
-  requireNamespace("knitr")
-  checkmate::assertFile(input)
-  checkmate::assertPathForOutput(output, overwrite = TRUE)
-  checkmate::assertInt(documentation)
+  stopifnot(is.integer(documentation) && length(documentation) == 1L)
   knitr::purl(input, output, quiet = TRUE, documentation = documentation)
   source(output, ...)
 }
 
-#' Save given variable in package data directory
+#' Find minimum R version required for package
 #'
-#' File is named varname.RData with an optional suffix before .RData
+#' Recursively search dependencies for R version, and find the highest stated R
+#' version requirement.
+#' @source Based on ideas from
+#'   http://stackoverflow.com/questions/38686427/determine-minimum-r-version-for-all-package-dependencies
 #'
-#' @param var_name character or symbol, e.g. "myvar" or \code{myvar}, either of
-#'   which would find \code{myvar} in the parent environment, and save it as
-#'   \code{myvar.RData} in \code{package_root/data}.
-#' @param suffix character scalar
-#' @keywords internal
-save_in_data_dir <- function(var_name, suffix = "") {
-  checkmate::assertString(suffix)
-  var_name <- as.character(substitute(var_name))
-  checkmate::assertString(var_name)
-  stopifnot(exists(var_name, envir = parent.frame()))
-  save(list = var_name,
-       envir = parent.frame(),
-       file = file.path("data", strip(paste0(var_name, suffix, ".RData"))),
-       compress = "xz")
-  message("Now reload package to enable updated/new data: ", var_name)
+#' @param pkg string with name of package to check
+#' @examples
+#' base <- c("base", "compiler", "datasets", "grDevices", "graphics",
+#' "grid", "methods", "parallel", "profile", "splines", "stats",
+#'  "stats4", "tcltk", "tools", "translations")
+#'
+#' \dontrun{
+#' base_reqs <- lapply(base, min_r_version)
+#' contrib <- c("KernSmooth", "MASS", "Matrix", "boot",
+#' "class", "cluster", "codetools", "foreign", "lattice",
+#'  "mgcv", "nlme", "nnet", "rpart", "spatial", "survival")
+#' contrib_reqs <- lapply(contrib, min_r_version)
+#' min_r_version("icd")
+#' }
+#' @importFrom tools package_dependencies
+#' @importFrom utils available.packages contrib.url compareVersion
+#' @export
+min_r_version <- function(pkg) {
+  avail <- utils::available.packages(
+    utils::contrib.url("https://cloud.r-project.org"))
+  deps <- tools::package_dependencies(pkg, db = avail, recursive = TRUE)
+  if (is.null(deps)) stop("package not found")
+  pkgs <- deps[[1]]
+  repo <- getOption("repo")
+  if (is.null(repo)) repo <- "https://cloud.r-project.org"
+  matches <- avail[, "Package"] %in% pkgs
+  pkg_list <- avail[matches, "Depends"]
+  vers <- grep("^R$|^R \\(.*\\)$", pkg_list, value = TRUE)
+  vers <- gsub("[^0-9.]", "", vers)
+  if (length(vers) == 0) return("Not specified")
+  max_ver <- vers[1]
+  if (length(vers) == 1) return(max_ver)
+  for (v in 2:length(vers))
+    if (utils::compareVersion(vers[v], max_ver) > 0) max_ver <- vers[v]
+  max_ver
+}
+
+#' Load packages with `library`, installing any which are missing
+#' @param pkgs character vector of packages to load and attach, with
+#'   installation if necessary
+#' @importFrom utils install.packages
+#' @md
+#' @export
+reqinst <- function(pkgs) {
+  for (pkg in pkgs) {
+    if (suppressPackageStartupMessages(
+      !require(pkg, character.only = TRUE,
+               quietly = TRUE,
+               warn.conflicts = FALSE)))
+      utils::install.packages(pkg, quiet = TRUE)
+    library(pkg, character.only = TRUE)
+  }
 }

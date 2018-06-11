@@ -1,7 +1,25 @@
-#' @title merge lists by names
-#' @description merge lists by vector combining all the vector elements of the
-#'   list items with the matching names. Unnamed vectors in the list will be
-#'   dropped silently.
+# Copyright (C) 2014 - 2018  Jack O. Wasey
+#
+# This file is part of jwutil.
+#
+# jwutil is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# jwutil is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with jwutil If not, see <http:#www.gnu.org/licenses/>.
+
+#' merge lists by names
+#'
+#' merge lists by vector combining all the vector elements of the list items
+#' with the matching names. Unnamed vectors in the list will be dropped
+#' silently.
 #' @param x unnested list with named elements, each of which is a vector
 #' @param y unnested list with named elements, each of which is a vector
 #' @return list of vectors
@@ -24,8 +42,10 @@ mergeLists <- function(x, y) {
 #' @return trimmed list
 #' @export
 listTrim  <-  function(x){
-  if (isFlat(x)) return(listTrimFlat(x))
-  lapply(x, listTrim)
+  if (isFlat(x))
+    listTrimFlat(x)
+  else
+    lapply(x, listTrim)
 }
 
 #' @title trim null or empty values from a list
@@ -37,9 +57,9 @@ listTrimFlat  <-  function(x) {
   # inefficient to do this twice if called from listTrim, but hey ho.
   stopifnot(isFlat(x))
   suppressWarnings(
-    x[sapply(x, length) != 0 &
-        !sapply(x, function(y) all(is.null(y))) &
-        !sapply(x, function(y) all(is.na(y)))
+    x[vapply(x, length, integer(1)) != 0 &
+        !vapply(x, function(y) all(is.null(y)), logical(1)) &
+        !vapply(x, function(y) all(is.na(y)), logical(1))
       ]
   )
 }
@@ -49,17 +69,18 @@ listTrimFlat  <-  function(x) {
 #'   different data types, but removes any depth
 #' @param ... list or any set of objects which will be made into a list, may
 #'   include lists and nested lists
-#' @param na.rm will drop NA values if TRUE
+#' @param na_rm will drop NA values if TRUE
 #' @return list without nested lists, objects with preserved data types
 #' @source
 #'   https://stackoverflow.com/questions/8139677/\
 #'   how-to-flatten-a-list-to-a-list-without-coercion
 #' @export
-flattenList <- function(..., na.rm = FALSE) {
+flattenList <- function(..., na_rm = FALSE) {
+  stopifnot(is.logical(na_rm) && length(na_rm) == 1L)
   x <- list(...)
   y <- list()
   rapply(x, function(x) y <- c(y, x))
-  if (na.rm) return(y[!is.na(y)])
+  if (na_rm) return(y[!is.na(y)])
   y
 }
 

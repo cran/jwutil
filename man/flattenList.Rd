@@ -8,13 +8,13 @@ https://stackoverflow.com/questions/8139677/\
   how-to-flatten-a-list-to-a-list-without-coercion
 }
 \usage{
-flattenList(..., na.rm = FALSE)
+flattenList(..., na_rm = FALSE)
 }
 \arguments{
 \item{...}{list or any set of objects which will be made into a list, may
 include lists and nested lists}
 
-\item{na.rm}{will drop NA values if TRUE}
+\item{na_rm}{will drop NA values if TRUE}
 }
 \value{
 list without nested lists, objects with preserved data types
@@ -23,4 +23,3 @@ list without nested lists, objects with preserved data types
 unlike unlist, this function returns a list of objects of
   different data types, but removes any depth
 }
-

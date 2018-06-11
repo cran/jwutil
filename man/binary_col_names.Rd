@@ -3,17 +3,11 @@
 \name{binary_col_names}
 \alias{binary_col_names}
 \alias{binary_cols}
-\alias{numeric_col_names}
-\alias{numeric_cols}
 \title{names of fields which are numeric, binary or combinations thereof}
 \usage{
 binary_col_names(x, invert = FALSE)
 
 binary_cols(x, invert = FALSE)
-
-numeric_col_names(x, invert = FALSE)
-
-numeric_cols(x, invert = FALSE)
 }
 \arguments{
 \item{x}{data frame}
@@ -35,4 +29,3 @@ binary_cols(dat)
 binary_col_names(dat)
 binary_col_names(dat, invert = TRUE)
 }
-
