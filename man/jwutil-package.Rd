@@ -4,18 +4,18 @@
 \name{jwutil-package}
 \alias{jwutil}
 \alias{jwutil-package}
-\alias{jwutil-package}
-\alias{jwutil}
 \title{Tools for testing and data manipulation not found elsewhere}
 \description{
-This is a set of simple utilities for various data manipulation and testing tasks.
-The goal is to use core R tools well, without bringing in many
-dependencies. Main areas of interest are semi-automated data frame manipulation, such as
-converting factors in multiple binary indicator columns. There are testing
-functions which provide 'testthat' expectations to permute arguments to
-function calls. There are functions and data to test extreme numbers, dates,
-and bad input of various kinds which should allow testing failure and corner
-cases, which can be used for fuzzing your functions. The test suite has many examples of usage.
+This is a set of simple utilities for various data
+    manipulation and testing tasks.  The goal is to use core R tools well,
+    without bringing in many dependencies. Main areas of interest are
+    semi-automated data frame manipulation, such as converting factors in
+    multiple binary indicator columns. There are testing functions which
+    provide 'testthat' expectations to permute arguments to function
+    calls. There are functions and data to test extreme numbers, dates,
+    and bad input of various kinds which should allow testing failure and
+    corner cases, which can be used for fuzzing your functions. The test
+    suite has many examples of usage.
 }
 \seealso{
 Useful links:
@@ -26,6 +26,6 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jack O. Wasey \email{jack@jackwasey.com} [copyright holder]
+\strong{Maintainer}: Jack O. Wasey \email{jack@jackwasey.com} (0000-0003-3738-4637) [copyright holder]
 
 }

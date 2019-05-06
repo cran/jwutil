@@ -41,11 +41,12 @@ mergeLists <- function(x, y) {
 #' @param x list
 #' @return trimmed list
 #' @export
-listTrim  <-  function(x){
-  if (isFlat(x))
+listTrim <- function(x) {
+  if (isFlat(x)) {
     listTrimFlat(x)
-  else
+  } else {
     lapply(x, listTrim)
+  }
 }
 
 #' @title trim null or empty values from a list
@@ -53,14 +54,13 @@ listTrim  <-  function(x){
 #' @param x list
 #' @return trimmed list
 #' @export
-listTrimFlat  <-  function(x) {
+listTrimFlat <- function(x) {
   # inefficient to do this twice if called from listTrim, but hey ho.
   stopifnot(isFlat(x))
   suppressWarnings(
     x[vapply(x, length, integer(1)) != 0 &
-        !vapply(x, function(y) all(is.null(y)), logical(1)) &
-        !vapply(x, function(y) all(is.na(y)), logical(1))
-      ]
+      !vapply(x, function(y) all(is.null(y)), logical(1)) &
+      !vapply(x, function(y) all(is.na(y)), logical(1))]
   )
 }
 
@@ -80,7 +80,9 @@ flattenList <- function(..., na_rm = FALSE) {
   x <- list(...)
   y <- list()
   rapply(x, function(x) y <- c(y, x))
-  if (na_rm) return(y[!is.na(y)])
+  if (na_rm) {
+    return(y[!is.na(y)])
+  }
   y
 }
 
@@ -92,4 +94,23 @@ flattenList <- function(..., na_rm = FALSE) {
 isFlat <- function(x) {
   stopifnot(is.list(x))
   !any(lapply(x, class) == "list")
+}
+
+#' Make a list using input argument names as names
+#' @param ... arguments whose names become list item names, and whose values
+#'   become the values in the list
+#' @examples
+#' a <- c(1, 2)
+#' b <- c("c", "d")
+#' stopifnot(
+#'   identical(
+#'     list_named(a, b),
+#'     list(a = a, b = b)
+#'   )
+#' )
+#' @export
+list_named <- function(...) {
+  x <- list(...)
+  names(x) <- as.character(match.call()[-1])
+  x
 }

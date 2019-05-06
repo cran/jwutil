@@ -1,4 +1,4 @@
-# Copyright (C) 2014 - 2018  Jack O. Wasey
+# Copyright (C) 2014 - 2019  Jack O. Wasey
 #
 # This file is part of jwutil.
 #
@@ -15,36 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with jwutil If not, see <http:#www.gnu.org/licenses/>.
 
-#' check whether character vector represents all numeric values
-#'
-#' check whether all the items of input vector are numeric without throwing
-#' warning derived from Hmsic package
-#' @param x is a character vector to be tested
-#' @param extras is a vector of character strings which are counted as NA
-#'   values, defaults to '.' and 'NA'. Also allow \code{NA}.
-#' @return logical scalar
-#' @export
-allIsNumeric <- function(x, extras = c(".", "NA", NA)) {
-  xs <- x[x %nin% c("", extras)]
-  suppressWarnings(!any(is.na(as.numeric(xs))))
-}
-
-#' check whether vector represents all integer values, not that the same as
-#' \code{is.integer}
-#'
-#' check whether all the items of input vector are integer as.integer
-#' @param x is a vector to be tested
-#' @param tol single numeric, default if less than 1e-9 from an integer then
-#'   considered an integer.
-#' @param na.rm single logical, passed on to \code{all}
-#' @return logical scalar
-#' @export
-allIsInteger <- function(x, tol =  1e-9, na.rm = TRUE)
-  all(  # don't count NA as false automatically
-    areIntegers(x, tol = tol, na.ignore = TRUE),
-    na.rm = na.rm
-  )
-
 #' convert factor or vector to numeric without warnings
 #'
 #' correctly converts factors to vectors, and then converts to
@@ -59,57 +29,80 @@ allIsInteger <- function(x, tol =  1e-9, na.rm = TRUE)
 #' @return numeric vector, may have NA values
 #' @aliases asIntegerNoWarn
 #' @export
-asNumericNoWarn <- function(x) {
+as_numeric_nowarn <- function(x) {
   if (is.factor(x)) x <- levels(x)[x]
   suppressWarnings(as.numeric(x))
 }
+asNumericNoWarn <- as_numeric_nowarn
 
-#' @rdname asNumericNoWarn
+#' @rdname as_numeric_nowarn
 #' @export
-asIntegerNoWarn <- function(x)
+as_integer_nowarn <- function(x)
   as.integer(asNumericNoWarn(x))
+asIntegerNoWarn <- as_integer_nowarn
 
-
-#' @rdname asNumericNoWarn
+#' @rdname as_numeric_nowarn
 #' @param tol tolerance when considering if two numbers are integers, default
 #'   1e-9
 #' @param na.ignore logical, if TRUE will pass through NA values, otherwise,
 #'   they are marked FALSE.
 #' @return logical vector
+#' @examples
+#' stopifnot(is_integerish("1"))
 #' @export
-areIntegers <- function(x, tol = 1e-9, na.ignore = FALSE) {
-  if (is.null(x)) return(FALSE)
+is_integerish <- function(x, tol = 1e-9, na.ignore = FALSE) {
+  if (is.null(x)) {
+    return(FALSE)
+  }
   stopifnot(is.numeric(tol), is.logical(na.ignore))
   stopifnot(length(tol) <= 1, length(na.ignore) <= 1)
   nas <- is.na(x)
   n <- asNumericNoWarn(x)
   i <- abs(n - round(n)) < tol
   i[is.na(i)] <- FALSE
-  if (!na.ignore)
+  if (!na.ignore) {
     i[nas] <- FALSE
-  else
+  } else {
     i[nas] <- NA_integer_
+  }
   i
 }
 
-#' @title which elements of a vector are numeric
-#' @description test without throwing a warning
-#' @param x vector
+#' @describeIn as_numeric_nowarn Deprecated
+#' @export
+areIntegers <- is_integerish
+
+#' Which elements of a character vector are numeric
+#'
+#' Takes a character vector and returns a logical vector of the same length,
+#' indicating which values are numeric. `NA` is considered non-numeric. `NA` is
+#' never returned from this function.
+#' @param x character vector
 #' @param extras character vector containing acceptable alternatives to numeric
 #'   values which will result in returning \code{TRUE} for that element. Default
 #'   is \code{c(".", "NA", NA)}.
 #' @return logical vector of same length as input
+#' @md
 #' @examples
-#' areNumeric(c("1","2","3"))
+#' areNumeric(c("1", "2", "3"))
 #' areNumeric(c("1L", "2.2"))
 #' areNumeric(c("NA", NA, ".", "", "-1.9"))
 #' @export
-areNumeric <- function(x, extras = c(".", "NA", NA)) {
-  if (is.null(x)) return(FALSE)
+is_numeric_str <- function(x, extras = c(".", "NA", NA)) {
+  if (is.null(x)) {
+    return(FALSE)
+  }
   old <- options(warn = -1)
   on.exit(options(old))
   x[x %in% c("", extras)] <- NA
   !is.na(as.numeric(x))
+}
+
+#' @describeIn is_numeric_str Deprecated
+#' @export
+areNumeric <- function(x, extras = c(".", "NA", NA)) {
+  warning("Deprecated, use is_numeric_str")
+  is_numeric_str(x, extras)
 }
 
 #' @title inverse of \%in\%
@@ -122,12 +115,11 @@ areNumeric <- function(x, extras = c(".", "NA", NA)) {
 "%nin%" <- function(x, table)
   match(x, table, nomatch = 0) == 0
 
-
 #' @title count non-numeric elements
 #' @description counts the number of non-numeric elements in a vector, without
 #'   throwing warnings
 #' @details did have \code{extras = c(".", "NA"))}
-#' @param x is usually a charcter vector
+#' @param x is usually a character vector
 #' @return integer
 #' @export
 countNotNumeric <- function(x)
@@ -143,7 +135,7 @@ countNumeric <- function(x)
   length(x) - countNotNumeric(x)
 
 #' @title count NA in vector
-#' @description count the number of NAs in a vector
+#' @description count the number of NAs in a vector. also consider `base::anyNA`
 #' @param x vector
 #' @return integer
 #' @export
@@ -158,27 +150,6 @@ countIsNa <- function(x)
 propIsNa <- function(x)
   if (length(x)) countIsNa(x) / length(x) else 0L
 
-#' @title count which combinations of fields have at least one non-NA
-#' @description cycles through the given data frame twice, and applies logical
-#'   OR to all elements of each column it then counts how many of these pairs
-#'   are not-na, i.e. have at least one non-NA value TODO: tests
-#' @param d data.frame
-#' @return matrix with nrow and ncol being the number of fields in the given
-#'   dataframe
-#' @export
-countNonNaPairs <- function(d) {
-  stop("needs thinking through")
-  apply(!is.na(d),
-        MARGIN = 2,
-        FUN = function(y) {
-          apply(is.na(d),
-                MARGIN = 2,
-                FUN = function(x, y) sum(x | y),
-                y)
-        }
-  )
-}
-
 #' @title running totals of number of non-NA values in consecutive fields
 #' @description counts non-NA fields in first field, then progreses through
 #'   fields, OR new field and saves running total for each field TODO: tests
@@ -189,25 +160,28 @@ countNonNaPairs <- function(d) {
 countNonNaCumulative <- function(d) {
   running <- rep(FALSE, dim(d)[1])
   apply(!is.na(d),
-        MARGIN = 2,
-        FUN = function(x, envir) {
-          #update running total of non-NA count
-          assign("running", running | x, envir = envir)
-          sum(running)
-        },
-        environment()
+    MARGIN = 2,
+    FUN = function(x, envir) {
+      # update running total of non-NA count
+      assign("running", running | x, envir = envir)
+      sum(running)
+    },
+    environment()
   )
 }
 
-#' @title list all items in a package
-#' @description default to including (?private) functions beginning with '.'
-#' @param package is the (unquoted) name of the package
+#' List all items in a package
+#'
+#' By default includes names beginning with '.'
+#' @param package character scalar: name of the package
 #' @param all.names = TRUE, set to FALSE to ignore items beginning with a period
 #' @param pattern = optional pattern to match
 #' @return character vector of package contents
+#' @examples
+#' lsp("jwutil")
+#' tail(lsp("base"), 30L)
 #' @export
 lsp <- function(package, all.names = TRUE, pattern) {
-  package <- deparse(substitute(package))
   ls(
     pos = paste("package", package, sep = ":"),
     all.names = all.names,
@@ -226,43 +200,59 @@ lsp <- function(package, all.names = TRUE, pattern) {
 #' @return vector of POSIXlt date-times
 #' @export
 add_time_to_date <- function(tms, dts, verbose = FALSE) {
-  if (length(dts) != length(tms))
+  if (length(dts) != length(tms)) {
     stop("must have matching lengths of date and time vectors.
          I got: %d and %d", length(dts), length(tms))
-  if (class(dts) %nin% c("Date", "character") && !is.na(dts))
-    stop(paste("date must be of class Date, character, but received: %s",
-               class(dts)))
+  }
+  if (class(dts) %nin% c("Date", "character") && !is.na(dts)) {
+    stop(paste(
+      "date must be of class Date, character, but received: %s",
+      class(dts)
+    ))
+  }
   # if a time part is given in the date field, this is an error
-  if (is.character(dts) && any(grepl(pattern = "\\S\\s\\S", dts)))
-    stop("suspect time is already given with date argument, \
+  if (is.character(dts) && any(grepl(pattern = "\\S\\s\\S", dts))) {
+    stop(
+      "suspect time is already given with date argument, \
          which invalidates this entire function. e.g. %s",
-         dts[grepl(pattern = "\\S\\s\\S", dts)][1])
+      dts[grepl(pattern = "\\S\\s\\S", dts)][1]
+    )
+  }
   # convert to Date (may already be Date, but that's fine) any conversion error
   # in any item will result in an error. an alternative strategy would be to
   # individually tryCatch converting each Date, returning warnings, NA, or
   # detailed error message. TODO
   dts <- as.Date(dts)
   # a single NA value could appear as type logical
-  if (class(tms) %nin% c("numeric", "integer", "character") && !is.na(tms))
-    stop("time must be numeric or character, but got class for times of '%s'.",
-         class(tms))
+  if (class(tms) %nin% c("numeric", "integer", "character") && !is.na(tms)) {
+    stop(
+      "time must be numeric or character, but got class for times of '%s'.",
+      class(tms)
+    )
+  }
   # this is a data error, not a programming error, stop
-  if (any(dts < as.Date("1850-01-01"), na.rm = TRUE))
+  if (any(dts < as.Date("1850-01-01"), na.rm = TRUE)) {
     stop("some dates are before 1850: ", dts[dts < as.Date("1850-01-01")])
-    # could alternatively set NA, warn and continue.
+  }
+  # could alternatively set NA, warn and continue.
   # Let NA be valid:
   if (!all(isValidTime(tms, na.rm = TRUE))) {
-    warning(sprintf("%d invalid time(s) received, replacing with NA",
-                    sum(isValidTime(tms, na.rm = TRUE))))
+    warning(sprintf(
+      "%d invalid time(s) received, replacing with NA",
+      sum(isValidTime(tms, na.rm = TRUE))
+    ))
     tms[!isValidTime(tms)] <- NA
   }
   if (is.character(tms)) tms <- gsub(":", "", tms, fixed = TRUE)
-  if (verbose) message(paste("working with times:", tms,
-                             collapse = ", ", sep = ", "), capture = TRUE)
+  if (verbose) {
+    message(paste("working with times:", tms,
+      collapse = ", ", sep = ", "
+    ), capture = TRUE)
+  }
   # convert to integer, then back to string later. THis is horrible.
   tms <- asIntegerNoWarn(tms)
   bad_range <- any(tms < 0 || tms > 2359)
-  if (!is.na(bad_range) && bad_range)  {
+  if (!is.na(bad_range) && bad_range) {
     warning("invalid times found. Setting to NA:", tms, capture = TRUE)
     tms[bad_range] <- NA
   }
@@ -283,44 +273,85 @@ isValidTime <- function(tms, na.rm = FALSE) {
   grepl("^[[:space:]]*([01]?[0-9]|2[0-3])?:?[0-5]?[0-9][[:space:]]*$", tms)
 }
 
-#' @title shuffle
-#' @description randomly shuffle the order of a vector or list. This is to
-#'   improve quality of bad data to throw at functions when testing.
+#' Shuffle a vector
+#'
+#' Randomly shuffle the order of a vector or list. This is to improve quality of
+#' bad data to throw at functions when testing.
 #' @param x list or vector
 #' @return list or vector of same length as input, (probably) in a different
 #'   order
+#' @examples
+#' set.seed(1441)
+#' shuffle(LETTERS)
 #' @export
 shuffle <- function(x)
   sample(x = x, size = length(x), replace = FALSE, prob = NULL)
 
-#' @title generate all permutations of input, reusing values in each result row
-#' @description systematically permute the input vector or list
+#' Generate all permutations of input, reusing values in each result row
+#'
+#' Expand the given vector into all possible values in each location, with or
+#' without duplicates.
 #' @param x list or vector
+#' @param unique logical, if `TRUE`, the default, only unique results are
+#'   returned
 #' @return data frame, each row being one permutation
+#' @md
+#' @examples
+#' ltr <- c("a", "b", "c")
+#' x <- permuteWithRepeats(ltr, unique = FALSE)
+#' print(x)
+#' stopifnot(nrow(x) == length(ltr)^length(ltr))
+#' # duplicate results are dropped
+#' y <- permuteWithRepeats(c("X", "Y", "Y"))
+#' print(y)
+#' stopifnot(nrow(y) == 2^3)
+#' z <- permuteWithRepeats(c("X", "Y", "Y", "Y"))
+#' stopifnot(nrow(z) == 2^4)
+#' a <- permuteWithRepeats(c(1, 2, 3, 1))
+#' stopifnot(nrow(a) == 3^4)
 #' @export
-permuteWithRepeats <- function(x) {
+permuteWithRepeats <- function(x, unique = TRUE) {
   stopifnot(length(x) < 8)
-  expand.grid(rep(list(unlist(x)), times = length(unlist(x))))
+  y <- expand.grid(rep(list(unlist(x)), times = length(unlist(x))))
+  if (unique) {
+    y <- unique(y)
+    rownames(y) <- NULL
+  }
+  y
 }
 
-#' @title generate all permutations of input
-#' @description systematically permute the input vector or list, which is very
-#'   slow for long x. Am amazed something this simple isn't either in base R, or
-#'   in a straightforward form in a package.
+#' Generate all permutations of input
 #'
-#'   TODO: limit to a certain cut-off, after which we randomly sample
+#' Systematically permute the input vector or list, which is very slow for long
+#' x. Am amazed something this simple isn't either in base R, or in a
+#' straightforward form in a package.
+#'
+#' TODO: limit to a certain cut-off, after which we randomly sample
 #' @param x list or vector
 #' @return data frame, each row being one permutation
+#' @examples
+#' ltr <- c("a", "b", "c", "d")
+#' x <- permute(ltr)
+#' print(x)
+#' stopifnot(nrow(x) == factorial(length(ltr)))
+#' ltr <- c("a", "b", "b")
+#' x <- permute(ltr)
+#' print(x)
+#' stopifnot(nrow(x) == factorial(length(ltr)))
 #' @export
 permute <- function(x) {
-  if (is.null(x)) return()
-  stopifnot(length(x) < 13)  # factorial size, so limit for sanity
+  if (is.null(x)) {
+    return()
+  }
+  stopifnot(length(x) < 13) # factorial size, so limit for sanity
   # break out of recursion:
-  if (length(x) == 2) return(rbind(x, c(x[2], x[1])))
+  if (length(x) == 2) {
+    return(rbind(x, c(x[2], x[1])))
+  }
   res <- c()
-  #take each one and place it first, then recurse the rest:
+  # take each one and place it first, then recurse the rest:
   for (element in 1:length(x)) {
-    sub_combs <- Recall(x[ -element])  # recurse
+    sub_combs <- Recall(x[-element]) # recurse
     new_combs <- cbind(x[element], sub_combs)
     res <- rbind(res, new_combs)
   }
@@ -332,6 +363,10 @@ permute <- function(x) {
 #' @param x vector to be subsetted and combined
 #' @importFrom  utils combn
 #' @return list of vectors with all combinations of x and its subsets
+#' @examples
+#' combn_subset(c("a", "b"))
+#' combn_subset(c(10, 20, 30))
+#' combn_subset(NULL)
 #' @export
 combn_subset <- function(x) {
   res <- list()
@@ -343,30 +378,48 @@ combn_subset <- function(x) {
   unique(res)
 }
 
-#' @title optimizes a function for all combinations of all subsets
-#' @description takes a data frame and optimization function
+#' selects columns from a data frame using an optimization function
+#'
+#' The optimization function is called with the data frame `x` and the names of
+#' each combination of the names of `x`'s columns. An example of real-world
+#' usage is to automate selection of columns according to the optimization
+#' function.
 #' @param x data frame
-#' @param fun function which takes parameters x = data.frame, n = columns
+#' @param fun function which takes parameters `x = data.frame, n = columns`
 #' @template verbose
+#' @md
+#' @examples
+#' j <- data.frame(a = 1:5, b = 6:2, c = c(0, 2, 4, 6, 8))
+#' opt_binary_brute(j)
+#' j[1, 1] <- NA
+#' j[1:4, 2] <- NA
+#' my_opt_fun <- function(x, n) sum(!unlist(lapply(x, is.na)))
+#' opt_binary_brute(j, fun = my_opt_fun)
 #' @export
-opt_binary_brute <- function(x, fun = opt_binary_fun, verbose = TRUE) {
+opt_binary_brute <- function(x, fun = opt_binary_fun, verbose = FALSE) {
   n <- names(x)
   all_cmbs <- combn_subset(n)
   best_min <- 1e9
-  best_min_by_len <- c(rep(best_min, times = length(n)))
-  best_cmb_by_len <- as.list(rep("", times = length(n)))
-  for (cmb in rev(all_cmbs)) {
+  best_min_by_len <- c(rep(best_min, times = length(n) - 1))
+  best_cmb_by_len <- as.list(rep("", times = length(n) - 1))
+  for (cmb in rev(all_cmbs)[-1]) {
     len_cmb <- length(cmb)
     optim <- fun(x, cmb)
     if (optim < best_min_by_len[len_cmb]) {
-      if (verbose) message("best combination for length: ", len_cmb, " is ",
-                           paste(cmb, collapse = ", "), " and optim: ", optim)
+      if (verbose) {
+        message(
+          "best combination for length: ", len_cmb, " is ",
+          paste(cmb, collapse = ", "), ", optim = ", optim
+        )
+      }
       best_min_by_len[len_cmb] <- optim
       best_cmb_by_len[[len_cmb]] <- cmb
     }
   }
-  list(best_min_by_len = best_min_by_len,
-       best_cmb_by_len = best_cmb_by_len)
+  list(
+    best_min_by_len = best_min_by_len,
+    best_cmb_by_len = best_cmb_by_len
+  )
 }
 
 # stupid example optimization metric function
@@ -401,12 +454,15 @@ platformIsMac <- function()
 #' @importFrom utils read.delim
 #' @export
 read_xlsx_linux <- function(file) {
-  if (platformIsWindows())
+  if (platformIsWindows()) {
     stop("can only convert XLSX on linux using xlsx2csv command")
+  }
   csvfile <- tempfile()
   on.exit(unlink(csvfile), add = TRUE)
-  system(paste0("xlsx2csv --delimiter=tab --dateformat=%m-%d-%y \"",
-                file, "\" > ", csvfile))
+  system(paste0(
+    "xlsx2csv --delimiter=tab --dateformat=%m-%d-%y \"",
+    file, "\" > ", csvfile
+  ))
   utils::read.delim(csvfile)
 }
 
@@ -420,7 +476,6 @@ read_xlsx_linux <- function(file) {
 #' @examples
 #' print(f <- build_formula(left = "A", right = c("B", "C")))
 #' class(f)
-#'
 #' build_formula(left = "Species", right = names(iris)[1:4])
 #' @export
 build_formula <- function(left, right) {
@@ -430,7 +485,8 @@ build_formula <- function(left, right) {
     paste(
       paste(left, collapse = "+"),
       paste(right, collapse = "+"),
-      sep = "~")
+      sep = "~"
+    )
   )
 }
 
@@ -449,7 +505,7 @@ buildLinearFormula <- build_formula
 #' @export
 invwhich <- function(which, len = max(which)) {
   stopifnot(all(which > 0))
-  stopifnot(allIsInteger(which))
+  stopifnot(all(is_integerish(which)))
   stopifnot(length(len) > 0)
   stopifnot(identical(areIntegers(len), TRUE))
   is.element(seq_len(len), which)
@@ -457,18 +513,17 @@ invwhich <- function(which, len = max(which)) {
 
 #' @title recursive remove
 #' @description search through environments until the variables in the list
-#'   \code{x} are all gone. This doesn't delete functions. No barrier to
-#'   infinite recursion, but \code{rm} should be able to delete anything that
-#'   \code{exists} can see.
+#'   \code{x} are all gone. This doesn't delete functions.
 #' @param x variables to annihilate
 #' @param envir environment to start at, defaults to calling frame.
 #' @export
 rm_r <- function(x, envir = parent.frame()) {
   suppressWarnings({
     while (any(vapply(x, exists, logical(1),
-                      mode = "numeric", inherits = TRUE, envir = envir)))
+      mode = "numeric", inherits = TRUE, envir = envir
+    ))) {
       rm(list = x, envir = envir, inherits = TRUE)
-
+    }
   })
 }
 
@@ -514,10 +569,12 @@ ls.objects <- function(env = parent.frame(), pattern, order.by,
   }
   out <- data.frame(obj.type, obj.size, obj.rows, obj.cols)
   names(out) <- c("Type", "Size", "Len/Rows", "Columns")
-  if (!missing(order.by))
+  if (!missing(order.by)) {
     out <- out[order(out[[order.by]], decreasing = decreasing), ]
-  if (head)
+  }
+  if (head) {
     out <- head(out, n)
+  }
   out
 }
 
@@ -529,7 +586,10 @@ ls.objects <- function(env = parent.frame(), pattern, order.by,
 #' @param n scalar integer, number of objects to show
 #' @export
 lsos <- function(..., n = 10)
-  ls.objects(..., order.by = "Size", decreasing = TRUE, head = TRUE, n = n)
+  ls.objects(
+    env = parent.frame(), ...,
+    order.by = "Size", decreasing = TRUE, head = TRUE, n = n
+  )
 
 #' @title is the object a \code{Date}
 #' @description copied from lubridate
@@ -541,22 +601,18 @@ is.Date <- function(x)
 
 #' Extract code from knitr vignette and source it
 #'
-#' Extract code from knitr vignette and source it. This has the advantage in
-#' that it runs with code in \R session, whereas running vignettes normally
-#' requires the package to be installed.
+#' Extract code from knitr vignette and `source` it.
 #' @param input path to file as single character string
-#' @param output output file path, defaults to a file in a temporary name based
-#'   on \code{input}
-#' @param documentation single integer value passed on to \code{knitr::purl}. An
+#' @param documentation single integer value passed on to `knitr::purl`. An
 #'   integer specifying the level of documentation to go the tangled script: 0
 #'   means pure code (discard all text chunks); 1 (default) means add the chunk
 #'   headers to code; 2 means add all text chunks to code as roxygen comments
 #' @param ... further parameters passed to \code{source}
+#' @md
 #' @export
-source_purl <- function(input,
-                        output = file.path(.tempdir(),
-                                           paste0(basename(input), ".R")),
-                        documentation = 1L, ...) {
+source_purl <- function(input, documentation = 1L, ...) {
+  output <- tempfile()
+  on.exit(unlink(output))
   stopifnot(is.integer(documentation) && length(documentation) == 1L)
   knitr::purl(input, output, quiet = TRUE, documentation = documentation)
   source(output, ...)
@@ -568,18 +624,20 @@ source_purl <- function(input,
 #' version requirement.
 #' @source Based on ideas from
 #'   http://stackoverflow.com/questions/38686427/determine-minimum-r-version-for-all-package-dependencies
-#'
 #' @param pkg string with name of package to check
 #' @examples
-#' base <- c("base", "compiler", "datasets", "grDevices", "graphics",
-#' "grid", "methods", "parallel", "profile", "splines", "stats",
-#'  "stats4", "tcltk", "tools", "translations")
-#'
+#' base <- c(
+#'   "base", "compiler", "datasets", "grDevices", "graphics",
+#'   "grid", "methods", "parallel", "profile", "splines", "stats",
+#'   "stats4", "tcltk", "tools", "translations"
+#' )
 #' \dontrun{
 #' base_reqs <- lapply(base, min_r_version)
-#' contrib <- c("KernSmooth", "MASS", "Matrix", "boot",
-#' "class", "cluster", "codetools", "foreign", "lattice",
-#'  "mgcv", "nlme", "nnet", "rpart", "spatial", "survival")
+#' contrib <- c(
+#'   "KernSmooth", "MASS", "Matrix", "boot",
+#'   "class", "cluster", "codetools", "foreign", "lattice",
+#'   "mgcv", "nlme", "nnet", "rpart", "spatial", "survival"
+#' )
 #' contrib_reqs <- lapply(contrib, min_r_version)
 #' min_r_version("icd")
 #' }
@@ -588,7 +646,8 @@ source_purl <- function(input,
 #' @export
 min_r_version <- function(pkg) {
   avail <- utils::available.packages(
-    utils::contrib.url("https://cloud.r-project.org"))
+    utils::contrib.url("https://cloud.r-project.org")
+  )
   deps <- tools::package_dependencies(pkg, db = avail, recursive = TRUE)
   if (is.null(deps)) stop("package not found")
   pkgs <- deps[[1]]
@@ -598,11 +657,16 @@ min_r_version <- function(pkg) {
   pkg_list <- avail[matches, "Depends"]
   vers <- grep("^R$|^R \\(.*\\)$", pkg_list, value = TRUE)
   vers <- gsub("[^0-9.]", "", vers)
-  if (length(vers) == 0) return("Not specified")
+  if (length(vers) == 0) {
+    return("Not specified")
+  }
   max_ver <- vers[1]
-  if (length(vers) == 1) return(max_ver)
-  for (v in 2:length(vers))
+  if (length(vers) == 1) {
+    return(max_ver)
+  }
+  for (v in 2:length(vers)) {
     if (utils::compareVersion(vers[v], max_ver) > 0) max_ver <- vers[v]
+  }
   max_ver
 }
 
@@ -615,10 +679,74 @@ min_r_version <- function(pkg) {
 reqinst <- function(pkgs) {
   for (pkg in pkgs) {
     if (suppressPackageStartupMessages(
-      !require(pkg, character.only = TRUE,
-               quietly = TRUE,
-               warn.conflicts = FALSE)))
+      !require(pkg,
+        character.only = TRUE,
+        quietly = TRUE,
+        warn.conflicts = FALSE
+      )
+    )) {
       utils::install.packages(pkg, quiet = TRUE)
+    }
     library(pkg, character.only = TRUE)
   }
+}
+
+#' Get the first/only argument of the last run command
+#'
+#' This is experimental and writes to the calling frame, which, if in
+#' interactive mode, is probably the global environment. We write to a horrible
+#' and unusual (although well-known) variable name, which will avoid name
+#' conflicts.
+#' @return Returns the evaluated value of the first argument to first argument
+#'   of the previous R command, if it was a function call with parentheses.
+#'   Primarily, the function is invoked for its side effect of adding of
+#'   modifying `!$` in the global environment.
+#' @keywords internal
+#' @references
+#' \url{http://kevinushey.github.io/blog/2015/02/02/rprofile-essentials/}
+#' @md
+bang_dollar <- function() {
+  stopifnot(interactive())
+  hf <- tempfile()
+  utils::savehistory(hf)
+  h <- readLines(hf)
+  unlink(hf)
+  last_cmd <- h[[length(h) - 1]]
+  end_cmd <- sub(".*\\(", "", last_cmd)
+  first_arg <- sub("[,)].*", "", end_cmd)
+  res <- eval(first_arg, envir = parent.frame())
+  assign(".bangdollar", res, envir = parent.frame())
+  invisible(res)
+}
+
+`!$` <- function() {
+  stopifnot(interactive())
+  hf <- tempfile()
+  utils::savehistory(hf)
+  h <- readLines(hf)
+  unlink(hf)
+  last_cmd <- h[[length(h) - 1]]
+  end_cmd <- sub(".*\\(", "", last_cmd)
+  first_arg <- sub("[,)].*", "", end_cmd)
+  if (length(first_arg) == 0) {
+    return()
+  }
+  res <- eval(first_arg, envir = parent.frame())
+  res
+}
+
+#' Take clipboard contents, and write sorted character vector back
+#' @param cl Name of class to give to data before sorting, default is
+#'   \code{NULL}.
+#' @export
+sort_clip_char <- function(cl = NULL) {
+  tf <- tempfile()
+  on.exit(unlink(tf))
+  unsorted <- eval(
+    parse(text = paste(clipr::read_clip(), collapse = ""))
+  )
+  if (!is.null(cl)) class(x) <- cl
+  x <- sort(unsorted)
+  dput(file = tf, x)
+  clipr::write_clip(paste(readLines(tf)))
 }

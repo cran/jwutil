@@ -7,20 +7,20 @@
   the inputs to a function which should give the same result where n args >=2
   and the function is commutative.}
 \usage{
-expect_that_combine_all_args(object, condition, info = NULL, label = NULL)
+expect_that_combine_all_args(object, condition, info = NULL,
+  label = NULL)
 
-expect_that_combine_first_arg(object, condition, info = NULL, label = NULL)
+expect_that_combine_first_arg(object, condition, info = NULL,
+  label = NULL)
 }
 \arguments{
-\item{object}{object to test}
+\item{object}{See \code{\link[testthat]{expect_that}}.}
 
-\item{condition}{a function that returns whether or not the condition
-is met, and if not, an error message to display.}
+\item{condition}{See \code{\link[testthat]{expect_that}}.}
 
-\item{info}{extra information to be included in the message (useful when
-writing tests in loops).}
+\item{info}{See \code{\link[testthat]{expect_that}}.}
 
-\item{label}{object label. When \code{NULL}, computed from deparsed object.}
+\item{label}{See \code{\link[testthat]{expect_that}}.}
 }
 \value{
 testthat result
@@ -34,8 +34,10 @@ This makes a lot of assumptions, needs more testing. It can't
   testthat::expect_that_combine
 }
 \examples{
- expect_that_combine_all_args(sum(1, 2, 3),
-  testthat::equals(6))
+expect_that_combine_all_args(
+  sum(1, 2, 3),
+  testthat::equals(6)
+)
 \dontrun{
 expect_that_combine_all_args(stop("a", "b"), testthat::throws_error())
 expect_that_combine_all_args(sum(1, 2), testthat::equals(3))

@@ -61,10 +61,14 @@ getDropped <- function(x, y)
 #' @param invert single logical, if true, will return non-binary columns
 #' @return vector of column names
 #' @examples
-#' dat <- data.frame(c("a", "b"), c(TRUE, FALSE), c(1, 0), c(1L, 0L),
-#'                   c(1L, 2L), c(0.1, 0.2), c("9", "8"))
-#' names(dat) <- c("char", "bin", "binfloat", "binint",
-#'                 "int", "float", "charint")
+#' dat <- data.frame(
+#'   c("a", "b"), c(TRUE, FALSE), c(1, 0), c(1L, 0L),
+#'   c(1L, 2L), c(0.1, 0.2), c("9", "8")
+#' )
+#' names(dat) <- c(
+#'   "char", "bin", "binfloat", "binint",
+#'   "int", "float", "charint"
+#' )
 #' binary_cols(dat)
 #' binary_col_names(dat)
 #' binary_col_names(dat, invert = TRUE)
@@ -75,12 +79,53 @@ binary_col_names <- function(x, invert = FALSE) {
   names(x)[xor(vapply(x, function(y) all(y %in% c(0, 1)), logical(1)), invert)]
 }
 
-#' @rdname binary_col_names
+#' @describeIn binary_col_names Get the columns which have exactly two
+#'   categories therein, not including NA values. This would catch 0,1 "Yes",
+#'   "No", etc.
+#' @param ignore_na If TRUE, then return columns with two distinct values in
+#'   addition to NA. Default is FALSE, i.e. NA is counted as a distinct item.
+#' @param trim If character column found, then trim white space before assessing
+#' @examples
+#' df <- data.frame(
+#'   x = c("A", "B", "A", "B"),
+#'   y = letters[1:4],
+#'   z = c("y", NA, "y", NA),
+#'   stringsAsFactors = FALSE
+#' )
+#' two_cat_col_names(df)
+#' df[1, 1] <- NA
+#' df[2, 2] <- NA
+#' df
+#' stopifnot(two_cat_col_names(df) == "z")
+#' stopifnot(two_cat_col_names(df, ignore_na = TRUE) == "x")
 #' @export
-binary_cols <- function(x, invert = FALSE) {
+two_cat_col_names <- function(x,
+                              invert = FALSE,
+                              ignore_na = FALSE,
+                              trim = TRUE) {
   stopifnot(is.data.frame(x))
   stopifnot(is.logical(invert), length(invert) == 1L)
+  is_two_cat <- vapply(x,
+    FUN = function(y) {
+      if (is.character(y)) y <- trimws(y)
+      length(unique(y)) == 2L + (anyNA(y) && ignore_na)
+    }, FUN.VALUE = logical(1)
+  )
+  names(x)[xor(is_two_cat, invert)]
+}
+
+#' @describeIn binary_col_names Get the data frame containing just the binary
+#'   columns.
+#' @export
+binary_cols <- function(x, invert = FALSE) {
   x[binary_col_names(x = x, invert = invert)]
+}
+
+#' @describeIn binary_col_names Get the data frame containing only columns of
+#'   input which have two categories
+#' @export
+two_cat_cols <- function(x, invert = FALSE) {
+  x[two_cat_col_names(x = x, invert = invert)]
 }
 
 #' @title fill out missing combinations of factors with NA
@@ -104,10 +149,11 @@ jw_df_basics <- function(x, df_list) {
   if (!missing(x)) df_list <- list(x)
   stopifnot(is.list(df_list) && all(vapply(df_list, is.data.frame, logical(1))))
   out <- lapply(df_list, .jw_df_basics_impl)
-  if (length(out) > 1)
+  if (length(out) > 1) {
     out
-  else
+  } else {
     out[[1]]
+  }
 }
 
 .jw_df_basics_impl <- function(x) {

@@ -30,16 +30,19 @@
 #'
 #' # without sorting is much faster:
 #' microbenchmark::microbenchmark(factor(pts$code),
-#'                                # factor_(pts$code),
-#'                                factor_nosort(pts$code),
-#'                                times = 25)
+#'   # factor_(pts$code),
+#'   factor_nosort(pts$code),
+#'   times = 25
+#' )
 #' }
 #' @details I don't think there is any requirement for factor levels to be
 #'   sorted in advance, especially not for ICD-9 codes where a simple
 #'   alphanumeric sorting will likely be completely wrong.
 #' @export
 factor_nosort <- function(x, levels = NULL, labels = levels) {
-  if (is.factor(x)) return(x)
+  if (is.factor(x)) {
+    return(x)
+  }
   if (is.null(levels)) levels <- unique.default(x)
   suppressWarnings(f <- match(x, levels))
   levels(f) <- as.character(labels)
